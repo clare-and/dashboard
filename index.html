@@ -366,9 +366,8 @@ body {
 </footer>
 
 <script>
-// ── PASTE YOUR ANTHROPIC API KEY BELOW ──────────────────────────────────────
-const ANTHROPIC_API_KEY = '';
-// ────────────────────────────────────────────────────────────────────────────
+// API key stored in browser localStorage — never in the code
+let ANTHROPIC_API_KEY = localStorage.getItem('anthropic_api_key') || '';
 
 function setTimestamp() {
   const now = new Date();
@@ -457,10 +456,57 @@ async function refreshAll() {
 }
 
 if (!ANTHROPIC_API_KEY) {
-  document.getElementById('qa-body').innerHTML =
-    '<div class="state-error">Paste your Anthropic API key into the HTML file to enable live data.</div>';
-  document.getElementById('lastUpdated').textContent = 'API key needed';
+  showApiKeyPrompt();
 } else {
+  document.getElementById('qa-body').innerHTML =
+    '<div class="state-empty">Hit Refresh to load screenings.</div>';
+  document.getElementById('lastUpdated').textContent = 'Not yet refreshed';
+}
+
+function showApiKeyPrompt() {
+  const overlay = document.createElement('div');
+  overlay.id = 'api-key-overlay';
+  overlay.style.cssText = `
+    position: fixed; inset: 0; background: rgba(56,56,59,0.92);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  `;
+  overlay.innerHTML = `
+    <div style="background: rgb(176,161,138); padding: 48px; max-width: 480px; width: 90%;">
+      <p style="font-family: 'GrandSlangRoman', serif; font-size: 22px; margin-bottom: 8px; line-height: 1.1;">One-time setup</p>
+      <p style="font-family: 'NeueMontrealRegular', sans-serif; font-size: 13px; color: rgba(0,0,0,0.6); margin-bottom: 24px; line-height: 1.6;">
+        Enter your Anthropic API key. It's saved to this browser only — never stored anywhere else.
+      </p>
+      <input
+        id="api-key-input"
+        type="password"
+        placeholder="sk-ant-..."
+        style="width: 100%; padding: 12px; font-family: 'Inter Tight', monospace; font-size: 13px;
+               background: rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.2); margin-bottom: 12px;
+               outline: none; color: black;"
+        autocomplete="off"
+      />
+      <button onclick="saveApiKey()" style="
+        width: 100%; padding: 12px; background: rgb(56,56,59); color: rgb(255,252,235);
+        border: none; font-family: 'NeueMontrealRegular', sans-serif; font-size: 13px;
+        letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+      ">Save & continue</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('api-key-input').focus();
+}
+
+function saveApiKey() {
+  const input = document.getElementById('api-key-input');
+  const key = input ? input.value.trim() : '';
+  if (!key.startsWith('sk-ant-')) {
+    input.style.borderColor = 'rgba(0,0,0,0.5)';
+    input.placeholder = 'Key should start with sk-ant-...';
+    return;
+  }
+  localStorage.setItem('anthropic_api_key', key);
+  ANTHROPIC_API_KEY = key;
+  document.getElementById('api-key-overlay').remove();
   document.getElementById('qa-body').innerHTML =
     '<div class="state-empty">Hit Refresh to load screenings.</div>';
   document.getElementById('lastUpdated').textContent = 'Not yet refreshed';
